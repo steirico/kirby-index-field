@@ -189,7 +189,15 @@ class IndexFieldOptions {
       if (isset($item['filename'])) {
         $item['panelurl'] = $this->activepage->file($item['filename'])->url('edit');
       } else {
-        $item['panelurl'] = panel()->page($item['id'])->url('edit');
+        $page = panel()->page($item['id']);
+        $item['panelurl'] = $page->url('edit');
+        $item['toggleurl'] = $page->url('toggle') . '?_redirect=' . $page->parent()->uri('edit');
+        $item['togglevisable'] = $page->ui()->visibility();
+        $item['togglestate'] = $page->isInvisible();
+        $item['deleteurl'] = $page->url('delete') . '?_redirect=' . $page->parent()->uri('edit');
+        $item['deletestate'] = $page->ui()->delete();
+        $item['icon'] = $page->blueprint()->icon();
+        $item['template'] = $page->blueprint()->title();
       }
       return $item;
     }, $this->options->toArray());
