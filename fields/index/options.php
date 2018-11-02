@@ -183,11 +183,62 @@ class IndexFieldOptions {
 
   }
 
+  public static function getFaIcon($mime_type) {
+    // List of official MIME Types: http://www.iana.org/assignments/media-types/media-types.xhtml
+    static $font_awesome_file_icon_classes = array(
+      // Media
+      'image' => 'file-image-o',
+      'audio' => 'file-audio-o',
+      'video' => 'file-video-o',
+      // Documents
+      'application/pdf' => 'file-pdf-o',
+      'application/msword' => 'file-word-o',
+      'application/vnd.ms-word' => 'file-word-o',
+      'application/vnd.oasis.opendocument.text' => 'file-word-o',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml' => 'file-word-o',
+      'application/vnd.ms-excel' => 'file-excel-o',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml' => 'file-excel-o',
+      'application/vnd.oasis.opendocument.spreadsheet' => 'file-excel-o',
+      'application/vnd.ms-powerpoint' => 'file-powerpoint-o',
+      'application/vnd.openxmlformats-officedocument.presentationml' => 'file-powerpoint-o',
+      'application/vnd.oasis.opendocument.presentation' => 'file-powerpoint-o',
+      'text/plain' => 'file-text-o',
+      'text/html' => 'file-code-o',
+      'application/json' => 'file-code-o',
+      // Archives
+      'application/gzip' => 'file-archive-o',
+      'application/zip' => 'file-archive-o',
+    );
+
+    while(!empty($mime_type)){
+      if (isset($font_awesome_file_icon_classes[$mime_type])) {
+        return $font_awesome_file_icon_classes[$mime_type];
+      }
+
+      $pos = strrpos($mime_type, '.');
+      if(!$pos){
+        $pos = strrpos($mime_type, '/');
+      }
+      if(!$pos){
+        $pos = 0;
+      }
+
+      $mime_type = substr($mime_type, 0, $pos);
+
+    }
+    return "file-o";
+  }
+
   public function format () {
     // add panel edit url to each item
     return array_map(function ($item) {
       if (isset($item['filename'])) {
-        $item['panelurl'] = $this->activepage->file($item['filename'])->url('edit');
+        $file = $this->activepage->file($item['filename']);
+        $item['panelurl'] = $file->url('edit');
+        $item['deleteurl'] = $file->url('delete') . '?_redirect=' . $file->page()->uri('edit');
+        $item['deletestate'] = $file->ui()->delete();
+        $item['icon'] = IndexFieldOptions::getFaIcon($file->mime());
+        $item['template'] = $file->type() . " / " . $file->extension();
       } else {
         $page = panel()->page($item['id']);
         $item['panelurl'] = $page->url('edit');
