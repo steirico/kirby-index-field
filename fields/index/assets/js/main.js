@@ -15,7 +15,8 @@
       } else {
         return $('<th>' + columns[key] + '</th>')
       }
-    })
+    });
+
 
     table.append(tableHead(headers, $('<thead></thead>')))
     table.append(tableHead(headers, $('<tfoot></tfoot>')))
@@ -25,7 +26,7 @@
     var table = table.DataTable({
       columnDefs: defs,
       pageLength: rows,
-      order: [[ 0, order ]],
+      order: [order],
       ajax: {
         url: entriesapi,
         dataSrc: function (json) {
@@ -34,29 +35,48 @@
             var result = []
             
             Object.keys(columns).forEach(function (key) {
-              
-              /**
-               * 1. Check for key under content object (page fields)
-               * 2. Check for key under meta object (file fields)
-               * 3. Use name as fallback for title on files
-               * 4. Check for key under top level object
-               * 5. Return empty string if no value
-               */
 
-              var item = i.content && i.content[key]
-                ? i.content[key]
-                : i.meta && i.meta[key]
-                ? i.meta[key]
-                : key === 'title' && !i.title && i.name
-                ? i.name
-                : i[key]
-                ? i[key]
-                : ''
+              switch(key){
+                case 'icon':
+                  result.push(blueprintIcon(i.icon, i.template));
+                  break;
 
-              result.push(item)
+                case 'edit':
+                  result.push(editButton(i.panelurl));
+                  break;
+
+                case 'toggle':
+                  result.push(toggleButton(i.toggleurl, i.togglevisable,  i.togglestate));
+                  break;
+
+                case 'delete':
+                  result.push(deleteButton(i.deleteurl, i.deletestate));
+                  break;
+
+                default:
+                  /**
+                   * 1. Check for key under content object (page fields)
+                   * 2. Check for key under meta object (file fields)
+                   * 3. Use name as fallback for title on files
+                   * 4. Check for key under top level object
+                   * 5. Return empty string if no value
+                   */
+
+                  var item = i.content && i.content[key]
+                    ? i.content[key]
+                    : i.meta && i.meta[key]
+                    ? i.meta[key]
+                    : key === 'title' && !i.title && i.name
+                    ? i.name
+                    : i[key]
+                    ? i[key]
+                    : ''
+
+                  result.push(item);
+              }
             })
 
-            return result.concat([editButton(i.panelurl)])
+            return result;
           })
 
           return formatted
@@ -67,16 +87,38 @@
     // click row to edit
     table.on('click', 'tbody tr', function (e) {
       var $target = $(e.target)
-      if (!$target.is('i') && !$target.is('a')) {
+      if (!$target.is('i') && !$target.is('a') && !$target.hasClass('index-fields-action')) {
         var $edit = $(e.currentTarget).find('.structure-edit-button')
         if ($edit.length) $edit.get(0).click()
       }
     })
 
+    function blueprintIcon (icon, template) {
+      return ' \
+          <i class="icon fa fa-' + icon + '" title="Template: ' + template + '"></i> \
+      '
+    }
+
     function editButton (editurl) {
       return ' \
         <a class="btn structure-edit-button" href="' + editurl + '"> \
-          <i class="icon fa fa-pencil"></i> \
+          <i class="icon fa fa-pencil" title="Click to edit"></i> \
+        </a> \
+      '
+    }
+
+    function toggleButton (toggleurl, visible, state) {
+      return ' \
+        <a class="btn structure-toggle-button' + (visible ? '' : ' is-disabled') + '" href="' + toggleurl + '" data-modal="true"> \
+          <i class="icon fa fa-toggle-' + (state ? 'off' : 'on') + '" title="Status: ' + (state ? 'Invisible' : 'Visible') + '. Click to change."></i> \
+        </a> \
+      '
+    }
+
+    function deleteButton (deleteurl, visible) {
+      return ' \
+        <a class="btn structure-delete-button' + (visible ? '' : ' is-disabled') + '" href="' + deleteurl + '" data-modal="true"> \
+          <i class="icon fa fa-trash-o" title="Clieck to delete"></i> \
         </a> \
       '
     }
@@ -87,9 +129,6 @@
         $row.append($header.clone())
       })
 
-      // edit col
-      $row.append($('<th width="18"></th>'))
-
       return $element.append($row);
     }
 
@@ -97,9 +136,7 @@
       // column defs handle custom column widths and classnames
       var colCount = Object.keys(columns).length
     
-      var defs = [
-        { orderable: false, targets: [ colCount ] }
-      ]
+      var defs = [];
 
       Object.keys(columns).forEach(function (key, i) {
         if (columns[key].width) {
