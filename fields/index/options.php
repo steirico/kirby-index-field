@@ -233,22 +233,35 @@ class IndexFieldOptions {
     // add panel edit url to each item
     return array_map(function ($item) {
       if (isset($item['filename'])) {
-        $file = $this->activepage->file($item['filename']);
-        $item['panelurl'] = $file->url('edit');
-        $item['deleteurl'] = $file->url('delete') . '?_redirect=' . $file->page()->uri('edit');
-        $item['deletestate'] = $file->ui()->delete();
-        $item['icon'] = IndexFieldOptions::getFaIcon($file->mime());
-        $item['template'] = $file->type() . " / " . $file->extension();
+        $itemInstance = $this->activepage->file($item['filename']);
+        $item['deleteurl'] = $itemInstance->url('delete') . '?_redirect=' . $itemInstance->page()->uri('edit');
+        $item['icon'] = IndexFieldOptions::getFaIcon($itemInstance->mime());
+        $item['template'] = $itemInstance->type() . " / " . $itemInstance->extension();
       } else {
-        $page = panel()->page($item['id']);
-        $item['panelurl'] = $page->url('edit');
-        $item['toggleurl'] = $page->url('toggle') . '?_redirect=' . $page->parent()->uri('edit');
-        $item['togglevisable'] = $page->ui()->visibility();
-        $item['togglestate'] = $page->isInvisible();
-        $item['deleteurl'] = $page->url('delete') . '?_redirect=' . $page->parent()->uri('edit');
-        $item['deletestate'] = $page->ui()->delete();
-        $item['icon'] = $page->blueprint()->icon();
-        $item['template'] = $page->blueprint()->title();
+        $itemInstance = panel()->page($item['id']);
+        $item['deleteurl'] = $itemInstance->url('delete') . '?_redirect=' . $itemInstance->parent()->uri('edit');
+        $item['icon'] = $itemInstance->blueprint()->icon();
+        $item['toggleurl'] = $itemInstance->url('toggle') . '?_redirect=' . $itemInstance->parent()->uri('edit');
+        $item['togglevisable'] = $itemInstance->ui()->visibility();
+        $item['togglestate'] = $itemInstance->isInvisible();
+      }
+
+      $item['panelurl'] = $itemInstance->url('edit');
+      $item['deletestate'] = $itemInstance->ui()->delete();
+
+      $methods = get_class($itemInstance)::$methods;
+
+      foreach($this->field->columns() as $col => $options){
+        if(array_key_exists($col, $methods)){
+          $field = $itemInstance->{$col}();
+          
+          if($options["render"]){
+            $item[$col] = $field->html()->toString();
+          } else {
+            $item[$col] = $field;
+          }
+
+        }
       }
       return $item;
     }, $this->options->toArray());
